@@ -1095,8 +1095,7 @@ function page(d) {
 
 export const config = { runtime: "edge" };
 
-export default {
-  async fetch(request) {
+export default async function handler(request) {
     const url = new URL(request.url);
     const noStore = { "Cache-Control": "no-store" };
 
@@ -1122,5 +1121,4 @@ export default {
     return new Response(page(d), {
       headers: { "Content-Type": "text/html; charset=utf-8", ...noStore },
     });
-  },
-};
+}
