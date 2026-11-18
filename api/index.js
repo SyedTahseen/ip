@@ -4,7 +4,7 @@
 //   /ip          -> plain-text IP only
 //   /world.json  -> country borders (Natural Earth), proxied and cached at the edge
 
-const POLL_MS = 15000; // how often an open tab re-checks the IP (also re-checks on focus / tab switch)
+const POLL_MS = 3000; // how often an open tab re-checks the IP (also re-checks on focus / tab switch)
 
 const esc = (s) =>
   String(s ?? "—").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -965,7 +965,9 @@ $("copy").addEventListener("click", function () {
 /* ---------- live updates: re-check the IP and fly the globe when it changes ---------- */
 var busy = false;
 function fetchInfo() {
-  return fetch("/json", { cache: "no-store" }).then(function (r) { if (!r.ok) throw new Error("bad status"); return r.json(); });
+  var ac = new AbortController();
+  var to = setTimeout(function () { ac.abort(); }, 4000);
+  return fetch("/json", { cache: "no-store", signal: ac.signal }).then(function (r) { clearTimeout(to); if (!r.ok) throw new Error("bad status"); return r.json(); }, function (e) { clearTimeout(to); throw e; });
 }
 function applyInfo(d) {
   D = d;
@@ -996,7 +998,9 @@ $("refresh").addEventListener("click", function () { closeSheet(); refresh(true)
 setInterval(function () { if (!document.hidden) refresh(false); }, POLL);
 document.addEventListener("visibilitychange", function () { if (!document.hidden) refresh(false); });
 addEventListener("focus", function () { refresh(false); });
-addEventListener("online", function () { refresh(false); });
+addEventListener("online", function () { refresh(false); setTimeout(function () { refresh(false); }, 1000); });
+addEventListener("pageshow", function () { refresh(false); });
+try { if (navigator.connection) navigator.connection.addEventListener("change", function () { refresh(false); setTimeout(function () { refresh(false); }, 1000); }); } catch (e) {}
 
 /* ---------- boot ---------- */
 (function boot() {
